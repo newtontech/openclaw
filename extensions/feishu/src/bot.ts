@@ -835,6 +835,10 @@ export async function handleFeishuMessage(params: {
     const speaker = ctx.senderName ?? ctx.senderOpenId;
     messageBody = `${speaker}: ${messageBody}`;
 
+    // Add message_id at the beginning of the message body for tracking
+    // This allows agents to reference the original message ID for API calls
+    messageBody = `[message_id: ${ctx.messageId}] ${messageBody}`;
+
     // If there are mention targets, inform the agent that replies will auto-mention them
     if (ctx.mentionTargets && ctx.mentionTargets.length > 0) {
       const targetNames = ctx.mentionTargets.map((t) => t.name).join(", ");
