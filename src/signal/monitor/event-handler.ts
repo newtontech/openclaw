@@ -36,7 +36,11 @@ import {
   upsertChannelPairingRequest,
 } from "../../pairing/pairing-store.js";
 import { resolveAgentRoute } from "../../routing/resolve-route.js";
-import { resolveDmGroupAccessWithLists } from "../../security/dm-policy-shared.js";
+import {
+  DM_GROUP_ACCESS_REASON,
+  readStoreAllowFromForDmPolicy,
+  resolveDmGroupAccessWithLists,
+} from "../../security/dm-policy-shared.js";
 import { normalizeE164 } from "../../utils.js";
 import {
   formatSignalPairingIdLine,
@@ -453,10 +457,11 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
     const hasBodyContent =
       Boolean(messageText || quoteText) || Boolean(!reaction && dataMessage?.attachments?.length);
     const senderDisplay = formatSignalSenderDisplay(sender);
-    const storeAllowFrom =
-      deps.dmPolicy === "allowlist"
-        ? []
-        : await readChannelAllowFromStore("signal").catch(() => []);
+    const storeAllowFrom = await readStoreAllowFromForDmPolicy({
+      provider: "signal",
+      dmPolicy: deps.dmPolicy,
+      readStore: (provider) => readChannelAllowFromStore(provider),
+    });
     const resolveAccessDecision = (isGroup: boolean) =>
       resolveDmGroupAccessWithLists({
         isGroup,
@@ -470,7 +475,6 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
     const dmAccess = resolveAccessDecision(false);
     const effectiveDmAllow = dmAccess.effectiveAllowFrom;
     const effectiveGroupAllow = dmAccess.effectiveGroupAllowFrom;
-    const dmAllowed = dmAccess.decision === "allow";
 
     if (
       reaction &&
@@ -543,9 +547,9 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
     if (isGroup) {
       const groupAccess = resolveAccessDecision(true);
       if (groupAccess.decision !== "allow") {
-        if (groupAccess.reason === "groupPolicy=disabled") {
+        if (groupAccess.reasonCode === DM_GROUP_ACCESS_REASON.GROUP_POLICY_DISABLED) {
           logVerbose("Blocked signal group message (groupPolicy: disabled)");
-        } else if (groupAccess.reason === "groupPolicy=allowlist (empty allowlist)") {
+        } else if (groupAccess.reasonCode === DM_GROUP_ACCESS_REASON.GROUP_POLICY_EMPTY_ALLOWLIST) {
           logVerbose("Blocked signal group message (groupPolicy: allowlist, no groupAllowFrom)");
         } else {
           logVerbose(`Blocked signal group sender ${senderDisplay} (not in groupAllowFrom)`);
@@ -555,19 +559,20 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
     }
 
     const useAccessGroups = deps.cfg.commands?.useAccessGroups !== false;
-    const ownerAllowedForCommands = isSignalSenderAllowed(sender, effectiveDmAllow);
+    const commandDmAllow = isGroup ? deps.allowFrom : effectiveDmAllow;
+    const ownerAllowedForCommands = isSignalSenderAllowed(sender, commandDmAllow);
     const groupAllowedForCommands = isSignalSenderAllowed(sender, effectiveGroupAllow);
     const hasControlCommandInMessage = hasControlCommand(messageText, deps.cfg);
     const commandGate = resolveControlCommandGate({
       useAccessGroups,
       authorizers: [
-        { configured: effectiveDmAllow.length > 0, allowed: ownerAllowedForCommands },
+        { configured: commandDmAllow.length > 0, allowed: ownerAllowedForCommands },
         { configured: effectiveGroupAllow.length > 0, allowed: groupAllowedForCommands },
       ],
       allowTextCommands: true,
       hasControlCommand: hasControlCommandInMessage,
     });
-    const commandAuthorized = isGroup ? commandGate.commandAuthorized : dmAllowed;
+    const commandAuthorized = commandGate.commandAuthorized;
     if (isGroup && commandGate.shouldBlock) {
       logInboundDrop({
         log: logVerbose,
