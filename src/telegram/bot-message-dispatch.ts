@@ -9,6 +9,7 @@ import { resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import { resolveChunkMode } from "../auto-reply/chunk.js";
 import { clearHistoryEntriesIfEnabled } from "../auto-reply/reply/history.js";
 import { dispatchReplyWithBufferedBlockDispatcher } from "../auto-reply/reply/provider-dispatcher.js";
+import { isSilentReplyPrefixText, isSilentReplyText } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { removeAckReactionAfterReply } from "../channels/ack-reactions.js";
 import { logAckFailure, logTypingFailure } from "../channels/logging.js";
@@ -232,6 +233,12 @@ export const dispatchTelegramMessage = async ({
       return;
     }
     if (text === lane.lastPartialText) {
+      return;
+    }
+    // Suppress preview for NO_REPLY responses to avoid message flash.
+    // Check both exact match and prefix (e.g., "NO", "NO_", "NO_R") to
+    // prevent sending a preview that will be deleted anyway.
+    if (isSilentReplyText(text) || isSilentReplyPrefixText(text)) {
       return;
     }
     // Mark that we've received streaming content (for forceNewMessage decision).
