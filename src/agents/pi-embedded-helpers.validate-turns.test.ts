@@ -243,7 +243,7 @@ describe("validateAnthropicTurns", () => {
     ]);
   });
 
-  it("should not merge consecutive assistant messages", () => {
+  it("should merge consecutive assistant messages", () => {
     const msgs = asMessages([
       { role: "user", content: [{ type: "text", text: "Question" }] },
       {
@@ -258,8 +258,57 @@ describe("validateAnthropicTurns", () => {
 
     const result = validateAnthropicTurns(msgs);
 
-    // validateAnthropicTurns only merges user messages, not assistant
+    // validateAnthropicTurns now merges consecutive assistant messages
+    expect(result).toHaveLength(2);
+    expect(result[0].role).toBe("user");
+    expect(result[1].role).toBe("assistant");
+    const content = (result[1] as { content: unknown[] }).content;
+    expect(content).toHaveLength(2);
+    expect(content).toEqual([
+      { type: "text", text: "Answer 1" },
+      { type: "text", text: "Answer 2" },
+    ]);
+  });
+
+  it("should merge assistant messages with tool_use before tool_result", () => {
+    // Simulates the bug scenario: text reply + tool call in two separate assistant messages
+    const msgs = asMessages([
+      { role: "user", content: [{ type: "text", text: "Check my session" }] },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "Got it, let me check your session." }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "toolUse", id: "tool-1", name: "session_status", input: {} }],
+      },
+      {
+        role: "user",
+        content: [{ type: "toolResult", toolUseId: "tool-1", content: "session data" }],
+      },
+    ]);
+
+    const result = validateAnthropicTurns(msgs);
+
+    // The two assistant messages should be merged
     expect(result).toHaveLength(3);
+    expect(result[0].role).toBe("user");
+    expect(result[1].role).toBe("assistant");
+    expect(result[2].role).toBe("user");
+
+    // The merged assistant should have both text and toolUse
+    const assistantContent = (result[1] as { content: unknown[] }).content;
+    expect(assistantContent).toHaveLength(2);
+    expect(assistantContent[0]).toEqual({
+      type: "text",
+      text: "Got it, let me check your session.",
+    });
+    expect(assistantContent[1]).toEqual({
+      type: "toolUse",
+      id: "tool-1",
+      name: "session_status",
+      input: {},
+    });
   });
 
   it("should handle mixed scenario with steering messages", () => {
