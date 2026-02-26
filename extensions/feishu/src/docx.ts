@@ -459,8 +459,17 @@ export function registerFeishuDocTools(api: OpenClawPluginApi) {
   const toolsCfg = resolveToolsConfig(firstAccount.config.tools);
   const mediaMaxBytes = (firstAccount.config?.mediaMaxMb ?? 30) * 1024 * 1024;
 
-  // Helper to get client for the default account
-  const getClient = () => createFeishuClient(firstAccount);
+  // Helper to get client for a specific account (or default if not specified)
+  const getClient = (accountId?: string) => {
+    if (!accountId) {
+      return createFeishuClient(firstAccount);
+    }
+    const account = accounts.find((a) => a.accountId === accountId);
+    if (!account) {
+      throw new Error(`Feishu account not found: ${accountId}`);
+    }
+    return createFeishuClient(account);
+  };
   const registered: string[] = [];
 
   // Main document tool with action-based dispatch
@@ -470,12 +479,14 @@ export function registerFeishuDocTools(api: OpenClawPluginApi) {
         name: "feishu_doc",
         label: "Feishu Doc",
         description:
-          "Feishu document operations. Actions: read, write, append, create, list_blocks, get_block, update_block, delete_block",
+          "Feishu document operations. Actions: read, write, append, create, list_blocks, get_block, update_block, delete_block. Optional accountId parameter for multi-account setups.",
         parameters: FeishuDocSchema,
         async execute(_toolCallId, params) {
-          const p = params as FeishuDocParams;
+          const p = params as FeishuDocParams & { accountId?: string };
           try {
-            const client = getClient();
+            // Support accountId parameter for multi-account scenarios
+            // If accountId is provided, use that account; otherwise use default
+            const client = getClient(p.accountId);
             switch (p.action) {
               case "read":
                 return json(await readDoc(client, p.doc_token));
