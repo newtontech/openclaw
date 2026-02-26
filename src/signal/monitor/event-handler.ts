@@ -56,6 +56,41 @@ import type {
   SignalReceivePayload,
 } from "./event-handler.types.js";
 import { renderSignalMentions } from "./mentions.js";
+
+/**
+ * Check if a Signal envelope is an expiration timer update message.
+ * These are system messages sent when a user enables/disables disappearing messages.
+ * They should be ignored rather than processed as regular messages.
+ */
+function isExpirationUpdateMessage(
+  envelope: SignalEnvelope,
+): boolean {
+  // signal-cli sets expirationTimer when the message is an expiration timer update.
+  // This can be on the dataMessage or directly on the envelope.
+  // The message typically has no text content, just the timer information.
+  const dataMessage = envelope.dataMessage ?? envelope.editMessage?.dataMessage;
+  
+  // Check for expiration timer update indicators
+  // signal-cli may include these fields for expiration updates:
+  // - expirationTimer (in dataMessage)
+  // - The message is typically empty with no attachments
+  if (dataMessage) {
+    // Check if this is a message that only contains expiration timer info
+    // with no actual content
+    const hasExpirationTimer = typeof (dataMessage as any).expirationTimer === "number";
+    const hasNoText = !dataMessage.message?.trim();
+    const hasNoAttachments = !dataMessage.attachments?.length;
+    const hasNoQuote = !dataMessage.quote?.text?.trim();
+    const hasNoReaction = !dataMessage.reaction;
+    
+    if (hasExpirationTimer && hasNoText && hasNoAttachments && hasNoQuote && hasNoReaction) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
   const inboundDebounceMs = resolveInboundDebounceMs({ cfg: deps.cfg, channel: "signal" });
 
@@ -194,7 +229,7 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
     });
 
     if (shouldLogVerbose()) {
-      const preview = body.slice(0, 200).replace(/\\n/g, "\\\\n");
+      const preview = body.slice(0, 200).replace(/\n/g, "\\n");
       logVerbose(`signal inbound: from=${ctxPayload.From} len=${body.length} preview="${preview}"`);
     }
 
@@ -202,7 +237,7 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       cfg: deps.cfg,
       agentId: route.agentId,
       channel: "signal",
-      accountId: route.accountId,
+      accountId: deps.accountId,
     });
 
     const typingCallbacks = createTypingCallbacks({
@@ -308,7 +343,7 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       const combinedText = entries
         .map((entry) => entry.bodyText)
         .filter(Boolean)
-        .join("\\n");
+        .join("\n");
       if (!combinedText.trim()) {
         return;
       }
@@ -423,6 +458,12 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       return;
     }
     if (envelope.syncMessage) {
+      return;
+    }
+
+    // Filter out expiration timer update messages (disappearing messages settings)
+    if (isExpirationUpdateMessage(envelope)) {
+      logVerbose("signal: ignoring expiration timer update message");
       return;
     }
 
