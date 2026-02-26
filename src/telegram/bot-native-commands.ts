@@ -1,4 +1,5 @@
 import type { Bot, Context } from "grammy";
+import type { Message } from "@grammyjs/types";
 import { resolveChunkMode } from "../auto-reply/chunk.js";
 import type { CommandArgs } from "../auto-reply/commands-registry.js";
 import {
@@ -71,6 +72,61 @@ const EMPTY_RESPONSE_FALLBACK = "No response generated. Please try again.";
 
 type TelegramNativeCommandContext = Context & { match?: string };
 
+/**
+ * Extracts a message-like object from the context, handling both regular messages
+ * and channel posts. For channel posts, creates a synthetic message with a
+ * synthetic `from` field based on `sender_chat`.
+ */
+function getCommandMessage(ctx: TelegramNativeCommandContext): Message | undefined {
+  // Regular message
+  if (ctx.message) {
+    return ctx.message;
+  }
+  // Channel post - create synthetic message
+  if (ctx.channelPost) {
+    const post = ctx.channelPost;
+    const chatId = post.chat.id;
+    // Build synthetic `from` field from sender_chat (for channel posts)
+    const syntheticFrom = post.sender_chat
+      ? {
+          id: post.sender_chat.id,
+          is_bot: true as const,
+          first_name: post.sender_chat.title || "Channel",
+          username: post.sender_chat.username,
+        }
+      : {
+          id: chatId,
+          is_bot: true as const,
+          first_name: post.chat.title || "Channel",
+          username: post.chat.username,
+        };
+    // Create a synthetic message that looks like a regular message
+    return {
+      ...post,
+      from: post.from ?? syntheticFrom,
+      chat: {
+        ...post.chat,
+        type: "supergroup" as const,
+      },
+    } as Message;
+  }
+  return undefined;
+}
+
+/**
+ * Checks if the message is a channel post (synthetic message created from channelPost).
+ * Channel posts are treated as inherently authorized since only channel admins can post.
+ */
+function isChannelPostMessage(msg: Message): boolean {
+  // Channel posts have a synthetic `from` with is_bot: true and id matching sender_chat
+  return (
+    msg.from?.is_bot === true &&
+    msg.chat.type === "supergroup" &&
+    // The chat.id and from.id will be the same for channel posts (sender_chat.id)
+    msg.from.id === msg.chat.id
+  );
+}
+
 type TelegramCommandAuthResult = {
   chatId: number;
   isGroup: boolean;
@@ -135,7 +191,7 @@ type RegisterTelegramNativeCommandsParams = {
 };
 
 async function resolveTelegramCommandAuth(params: {
-  msg: NonNullable<TelegramNativeCommandContext["message"]>;
+  msg: Message;
   bot: Bot;
   cfg: OpenClawConfig;
   accountId: string;
@@ -185,6 +241,9 @@ async function resolveTelegramCommandAuth(params: {
   } = groupAllowContext;
   const senderId = msg.from?.id ? String(msg.from.id) : "";
   const senderUsername = msg.from?.username ?? "";
+
+  // Channel posts are inherently authorized - only channel admins can post
+  const isChannelPost = isChannelPostMessage(msg);
 
   const sendAuthMessage = async (text: string) => {
     await withTelegramApiErrorLogging({
@@ -261,12 +320,16 @@ async function resolveTelegramCommandAuth(params: {
     senderId,
     senderUsername,
   });
-  const commandAuthorized = resolveCommandAuthorizedFromAuthorizers({
+  // Channel posts are inherently authorized (only channel admins can post)
+  const commandAuthorized = isChannelPost
+    ? true
+    : resolveCommandAuthorizedFromAuthorizers({
     useAccessGroups,
     authorizers: [{ configured: dmAllow.hasEntries, allowed: senderAllowed }],
     modeWhenAccessGroupsOff: "configured",
   });
-  if (requireAuth && !commandAuthorized) {
+  // Channel posts skip auth check - they're inherently authorized
+  if (requireAuth && !commandAuthorized && !isChannelPost) {
     return await rejectNotAuthorized();
   }
 
@@ -442,7 +505,7 @@ export const registerTelegramNativeCommands = ({
       for (const command of nativeCommands) {
         const normalizedCommandName = normalizeTelegramCommandName(command.name);
         bot.command(normalizedCommandName, async (ctx: TelegramNativeCommandContext) => {
-          const msg = ctx.message;
+          const msg = getCommandMessage(ctx);
           if (!msg) {
             return;
           }
@@ -664,7 +727,7 @@ export const registerTelegramNativeCommands = ({
 
       for (const pluginCommand of pluginCatalog.commands) {
         bot.command(pluginCommand.command, async (ctx: TelegramNativeCommandContext) => {
-          const msg = ctx.message;
+          const msg = getCommandMessage(ctx);
           if (!msg) {
             return;
           }
