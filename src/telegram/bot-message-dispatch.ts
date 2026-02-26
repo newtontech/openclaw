@@ -430,6 +430,7 @@ export const dispatchTelegramMessage = async ({
     },
   });
 
+  let dispatchError = false;
   try {
     ({ queuedFinal } = await dispatchReplyWithBufferedBlockDispatcher({
       ctx: ctxPayload,
@@ -597,6 +598,9 @@ export const dispatchTelegramMessage = async ({
         onModelSelected,
       },
     }));
+  } catch (err) {
+    dispatchError = true;
+    throw err;
   } finally {
     // Must stop() first to flush debounced content before clear() wipes state.
     const streamCleanupStates = new Map<
@@ -660,10 +664,16 @@ export const dispatchTelegramMessage = async ({
 
   const hasFinalResponse = queuedFinal || sentFallback;
 
-  if (statusReactionController && !hasFinalResponse) {
-    void statusReactionController.setError().catch((err) => {
-      logVerbose(`telegram: status reaction error finalize failed: ${String(err)}`);
-    });
+  if (statusReactionController) {
+    if (dispatchError) {
+      void statusReactionController.setError().catch((err) => {
+        logVerbose(`telegram: status reaction error finalize failed: ${String(err)}`);
+      });
+    } else {
+      void statusReactionController.setDone().catch((err) => {
+        logVerbose(`telegram: status reaction finalize failed: ${String(err)}`);
+      });
+    }
   }
 
   if (!hasFinalResponse) {
@@ -671,11 +681,7 @@ export const dispatchTelegramMessage = async ({
     return;
   }
 
-  if (statusReactionController) {
-    void statusReactionController.setDone().catch((err) => {
-      logVerbose(`telegram: status reaction finalize failed: ${String(err)}`);
-    });
-  } else {
+  if (!statusReactionController) {
     removeAckReactionAfterReply({
       removeAfterReply: removeAckAfterReply,
       ackReactionPromise,
