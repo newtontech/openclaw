@@ -59,6 +59,7 @@ import {
   buildTelegramParentPeer,
   resolveTelegramGroupAllowFromContext,
   resolveTelegramThreadSpec,
+  type TelegramThreadSpec,
 } from "./bot/helpers.js";
 import type { TelegramContext } from "./bot/types.js";
 import {
@@ -391,12 +392,18 @@ export const registerTelegramNativeCommands = ({
   }) => {
     const { msg, isGroup, isForum, resolvedThreadId } = params;
     const chatId = msg.chat.id;
-    const messageThreadId = (msg as { message_thread_id?: number }).message_thread_id;
-    const threadSpec = resolveTelegramThreadSpec({
-      isGroup,
-      isForum,
-      messageThreadId,
-    });
+    // Use the already-resolved thread ID for consistency with authorization
+    const threadSpec: TelegramThreadSpec = isGroup
+      ? {
+          id: resolvedThreadId,
+          scope: isForum ? "forum" : "none",
+        }
+      : (() => {
+          const messageThreadId = (msg as { message_thread_id?: number }).message_thread_id;
+          return messageThreadId != null
+            ? { id: messageThreadId, scope: "dm" as const }
+            : { scope: "dm" as const };
+        })();
     const parentPeer = buildTelegramParentPeer({ isGroup, resolvedThreadId, chatId });
     const route = resolveAgentRoute({
       cfg,
