@@ -2,7 +2,8 @@ import { Type } from "@sinclair/typebox";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import { ACP_SPAWN_MODES, spawnAcpDirect } from "../acp-spawn.js";
 import { optionalStringEnum } from "../schema/typebox.js";
-import { SUBAGENT_SPAWN_MODES, spawnSubagentDirect } from "../subagent-spawn.js";
+import { spawnSubagentDirect, SUBAGENT_SPAWN_MODES } from "../subagent-spawn.js";
+import type { SpawnSubagentImage } from "../subagent-spawn.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringParam } from "./common.js";
 
@@ -36,6 +37,8 @@ export function createSessionsSpawnTool(opts?: {
   sandboxed?: boolean;
   /** Explicit agent ID override for cron/hook sessions where session key parsing may not work. */
   requesterAgentIdOverride?: string;
+  /** Images from the current prompt to pass to spawned subagents. */
+  images?: SpawnSubagentImage[];
 }): AnyAgentTool {
   return {
     label: "Sessions",
@@ -99,6 +102,7 @@ export function createSessionsSpawnTool(opts?: {
                 mode,
                 cleanup,
                 expectsCompletionMessage: true,
+                images: opts?.images,
               },
               {
                 agentSessionKey: opts?.agentSessionKey,

@@ -69,6 +69,8 @@ export function createOpenClawTools(options?: {
   requesterSenderId?: string | null;
   /** Whether the requesting sender is an owner. */
   senderIsOwner?: boolean;
+  /** Images from the current prompt to pass to spawned subagents. */
+  promptImages?: Array<{ type: "image"; data: string; mimeType: string }>;
 }): AnyAgentTool[] {
   const workspaceDir = resolveWorkspaceRoot(options?.workspaceDir);
   const imageTool = options?.agentDir?.trim()
@@ -162,6 +164,7 @@ export function createOpenClawTools(options?: {
       agentGroupSpace: options?.agentGroupSpace,
       sandboxed: options?.sandboxed,
       requesterAgentIdOverride: options?.requesterAgentIdOverride,
+      images: options?.promptImages,
     }),
     createSubagentsTool({
       agentSessionKey: options?.agentSessionKey,
