@@ -1636,3 +1636,183 @@
     min-width: 70px;
   }
 }
+
+/* Ocean theme overrides (dark blue theme) */
+:root[data-theme="ocean"] .config-sidebar {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="ocean"] .config-search__input {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .config-search__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+:root[data-theme="ocean"] .config-search__tag-picker {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .config-nav__item:hover {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="ocean"] .config-mode-toggle {
+  background: var(--bg);
+}
+
+:root[data-theme="ocean"] .config-actions {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="ocean"] .config-diff__item {
+  background: var(--bg);
+}
+
+:root[data-theme="ocean"] .config-section-hero {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="ocean"] .config-subnav {
+  background: var(--bg);
+}
+
+:root[data-theme="ocean"] .config-subnav__item {
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .config-section-card {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="ocean"] .config-section-card__header {
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .cfg-tag {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .cfg-input {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .cfg-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+:root[data-theme="ocean"] .cfg-textarea {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .cfg-number {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .cfg-number__btn {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .cfg-number__btn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
+
+/* Spring theme overrides (light pink theme) */
+:root[data-theme="spring"] .config-sidebar {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="spring"] .config-search__input {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .config-search__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+:root[data-theme="spring"] .config-search__tag-picker {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .config-nav__item:hover {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="spring"] .config-mode-toggle {
+  background: var(--bg);
+}
+
+:root[data-theme="spring"] .config-actions {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="spring"] .config-diff__item {
+  background: var(--bg);
+}
+
+:root[data-theme="spring"] .config-section-hero {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="spring"] .config-subnav {
+  background: var(--bg);
+}
+
+:root[data-theme="spring"] .config-subnav__item {
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .config-section-card {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="spring"] .config-section-card__header {
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .cfg-tag {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .cfg-input {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .cfg-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+:root[data-theme="spring"] .cfg-textarea {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .cfg-number {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .cfg-number__btn {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .cfg-number__btn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
