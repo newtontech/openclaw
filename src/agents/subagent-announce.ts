@@ -1073,7 +1073,9 @@ export async function runSubagentAnnounceFlow(params: {
 }): Promise<boolean> {
   let didAnnounce = false;
   const expectsCompletionMessage = params.expectsCompletionMessage === true;
-  let shouldDeleteChildSession = params.cleanup === "delete";
+  // Guard against deleting parent session when childSessionKey === requesterSessionKey
+  const isSameAsRequester = params.childSessionKey === params.requesterSessionKey;
+  let shouldDeleteChildSession = params.cleanup === "delete" && !isSameAsRequester;
   try {
     let targetRequesterSessionKey = params.requesterSessionKey;
     let targetRequesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
