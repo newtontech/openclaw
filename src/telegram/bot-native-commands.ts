@@ -1,6 +1,7 @@
 import type { Bot, Context } from "grammy";
 import { resolveChunkMode } from "../auto-reply/chunk.js";
 import type { CommandArgs } from "../auto-reply/commands-registry.js";
+import { resolveCommandsAllowFromList } from "../auto-reply/command-auth.js";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -218,6 +219,36 @@ async function resolveTelegramCommandAuth(params: {
       return await sendAuthMessage("This topic is disabled.");
     }
     return await rejectNotAuthorized();
+  }
+
+  // Check commands.allowFrom first - when configured, it is the sole authority for command authorization
+  const commandsAllowFromList = resolveCommandsAllowFromList({
+    cfg,
+    accountId,
+    providerId: "telegram",
+  });
+  if (commandsAllowFromList !== null) {
+    // commands.allowFrom is configured - use it as the sole authorization source
+    const commandsAllowAll = commandsAllowFromList.some((entry) => entry.trim() === "*");
+    const senderCandidates = [senderId, senderUsername].filter((s) => s && s.trim());
+    const matchedCommandsAllowFrom = commandsAllowFromList.length
+      ? senderCandidates.find((candidate) => commandsAllowFromList.includes(candidate))
+      : undefined;
+    const commandAuthorized = commandsAllowAll || Boolean(matchedCommandsAllowFrom);
+    if (requireAuth && !commandAuthorized) {
+      return await rejectNotAuthorized();
+    }
+    return {
+      chatId,
+      isGroup,
+      isForum,
+      resolvedThreadId,
+      senderId,
+      senderUsername,
+      groupConfig,
+      topicConfig,
+      commandAuthorized,
+    };
   }
 
   const policyAccess = evaluateTelegramGroupPolicyAccess({
