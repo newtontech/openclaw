@@ -1,7 +1,8 @@
 import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk";
+import { resolveFeishuAccount } from "./accounts.js";
 import { sendMediaFeishu } from "./media.js";
 import { getFeishuRuntime } from "./runtime.js";
-import { sendMessageFeishu } from "./send.js";
+import { sendMarkdownCardFeishu, sendMessageFeishu } from "./send.js";
 
 export const feishuOutbound: ChannelOutboundAdapter = {
   deliveryMode: "direct",
@@ -9,6 +10,16 @@ export const feishuOutbound: ChannelOutboundAdapter = {
   chunkerMode: "markdown",
   textChunkLimit: 4000,
   sendText: async ({ cfg, to, text, accountId }) => {
+    // Check if card mode is enabled to support markdown tables
+    const account = resolveFeishuAccount({ cfg, accountId: accountId ?? undefined });
+    const renderMode = account.config?.renderMode ?? "auto";
+
+    // Use card mode when renderMode is "card" to support markdown tables
+    if (renderMode === "card") {
+      const result = await sendMarkdownCardFeishu({ cfg, to, text, accountId: accountId ?? undefined });
+      return { channel: "feishu", ...result };
+    }
+
     const result = await sendMessageFeishu({ cfg, to, text, accountId: accountId ?? undefined });
     return { channel: "feishu", ...result };
   },
