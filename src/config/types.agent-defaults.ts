@@ -202,6 +202,8 @@ export type AgentDefaultsConfig = {
    */
   imageMaxDimensionPx?: number;
   typingIntervalSeconds?: number;
+  /** Typing indicator TTL in seconds (default: 120, 0 or -1 for unlimited). */
+  typingTtlSeconds?: number;
   /** Typing indicator start mode (never|instant|thinking|message). */
   typingMode?: TypingMode;
   /** Periodic background heartbeat runs. */

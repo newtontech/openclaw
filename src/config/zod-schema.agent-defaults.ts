@@ -131,6 +131,14 @@ export const AgentDefaultsSchema = z
     mediaMaxMb: z.number().positive().optional(),
     imageMaxDimensionPx: z.number().int().positive().optional(),
     typingIntervalSeconds: z.number().int().positive().optional(),
+    typingTtlSeconds: z
+      .number()
+      .int()
+      .min(-1)
+      .optional()
+      .describe(
+        "Typing indicator TTL in seconds. Default: 120 (2 minutes). 0 or -1 means unlimited (no timeout).",
+      ),
     typingMode: TypingModeSchema.optional(),
     heartbeat: HeartbeatSchema,
     maxConcurrent: z.number().int().positive().optional(),
