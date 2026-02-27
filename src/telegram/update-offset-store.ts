@@ -24,7 +24,7 @@ function resolveTelegramUpdateOffsetPath(
   accountId?: string,
   env: NodeJS.ProcessEnv = process.env,
 ): string {
-  const stateDir = resolveStateDir(env, os.homedir);
+  const stateDir = resolveStateDir(env, () => os.homedir());
   const normalized = normalizeAccountId(accountId);
   return path.join(stateDir, "telegram", `update-offset-${normalized}.json`);
 }
