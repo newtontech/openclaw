@@ -293,6 +293,11 @@ function parsePostContent(content: string): {
             if (imageKey) {
               imageKeys.push(imageKey);
             }
+          } else if (element.tag === "code_block" || element.tag === "pre") {
+            // Code block or preformatted text
+            const lang = element.language || "";
+            const code = element.text || element.content || "";
+            textContent += `\n\`\`\`${lang}\n${code}\n\`\`\`\n`;
           }
         }
         textContent += "\n";
