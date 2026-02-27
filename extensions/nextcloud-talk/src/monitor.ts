@@ -15,6 +15,7 @@ import { extractNextcloudTalkHeaders, verifyNextcloudTalkSignature } from "./sig
 import type {
   CoreConfig,
   NextcloudTalkInboundMessage,
+  NextcloudTalkParsedContent,
   NextcloudTalkWebhookHeaders,
   NextcloudTalkWebhookPayload,
   NextcloudTalkWebhookServerOptions,
@@ -132,6 +133,7 @@ function verifyWebhookSignature(params: {
 function decodeWebhookCreateMessage(params: {
   body: string;
   res: ServerResponse;
+  baseUrl?: string;
 }):
   | { kind: "message"; message: NextcloudTalkInboundMessage }
   | { kind: "ignore" }
@@ -144,14 +146,83 @@ function decodeWebhookCreateMessage(params: {
   if (payload.type !== "Create") {
     return { kind: "ignore" };
   }
-  return { kind: "message", message: payloadToInboundMessage(payload) };
+  return { kind: "message", message: payloadToInboundMessage(payload, params.baseUrl) };
+}
+
+/**
+ * Parse JSON content from Nextcloud Talk object.content field.
+ * Returns null if parsing fails or content is not JSON.
+ */
+function parseObjectContent(content: string): NextcloudTalkParsedContent | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (typeof parsed.message === "string") {
+      return parsed as NextcloudTalkParsedContent;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract file URLs from rich object parameters.
+ * Converts Nextcloud file paths to WebDAV URLs.
+ */
+function extractFileUrls(params: {
+  parameters?: Record<string, { type: string; id?: string | number; path?: string }>;
+  baseUrl: string;
+  senderId: string;
+}): string[] {
+  if (!params.parameters) {
+    return [];
+  }
+
+  const urls: string[] = [];
+  const baseUrlTrimmed = params.baseUrl.replace(/\/+$/, "");
+  
+  // Extract user ID from "users/username" format
+  const userId = params.senderId.startsWith("users/")
+    ? params.senderId.substring(6)
+    : params.senderId;
+
+  for (const key of Object.keys(params.parameters)) {
+    const param = params.parameters[key];
+    if (param.type === "file" && param.path) {
+      // Construct WebDAV URL for the file
+      // Format: {baseUrl}/remote.php/dav/files/{userId}/{path}
+      const filePath = param.path.startsWith("/") ? param.path.substring(1) : param.path;
+      const fileUrl = `${baseUrlTrimmed}/remote.php/dav/files/${userId}/${filePath}`;
+      urls.push(fileUrl);
+    }
+  }
+
+  return urls;
 }
 
 function payloadToInboundMessage(
   payload: NextcloudTalkWebhookPayload,
+  baseUrl?: string,
 ): NextcloudTalkInboundMessage {
   // Payload doesn't indicate DM vs room; mark as group and let inbound handler refine.
   const isGroupChat = true;
+
+  // Try to parse rich object content
+  const parsedContent = parseObjectContent(payload.object.content);
+  const text = parsedContent?.message ?? payload.object.content ?? payload.object.name ?? "";
+  
+  // Extract file attachments if present
+  let mediaUrls: string[] | undefined;
+  if (parsedContent?.parameters && baseUrl) {
+    mediaUrls = extractFileUrls({
+      parameters: parsedContent.parameters,
+      baseUrl,
+      senderId: payload.actor.id,
+    });
+    if (mediaUrls.length === 0) {
+      mediaUrls = undefined;
+    }
+  }
 
   return {
     messageId: String(payload.object.id),
@@ -159,10 +230,11 @@ function payloadToInboundMessage(
     roomName: payload.target.name,
     senderId: payload.actor.id,
     senderName: payload.actor.name ?? "",
-    text: payload.object.content || payload.object.name || "",
+    text,
     mediaType: payload.object.mediaType || "text/plain",
     timestamp: Date.now(),
     isGroupChat,
+    mediaUrls,
   };
 }
 
@@ -181,7 +253,7 @@ export function createNextcloudTalkWebhookServer(opts: NextcloudTalkWebhookServe
   start: () => Promise<void>;
   stop: () => void;
 } {
-  const { port, host, path, secret, onMessage, onError, abortSignal } = opts;
+  const { port, host, path, secret, baseUrl, onMessage, onError, abortSignal } = opts;
   const maxBodyBytes =
     typeof opts.maxBodyBytes === "number" &&
     Number.isFinite(opts.maxBodyBytes) &&
@@ -230,6 +302,7 @@ export function createNextcloudTalkWebhookServer(opts: NextcloudTalkWebhookServe
       const decoded = decodeWebhookCreateMessage({
         body,
         res,
+        baseUrl,
       });
       if (decoded.kind === "invalid") {
         return;
@@ -352,6 +425,7 @@ export async function monitorNextcloudTalkProvider(
     host,
     path,
     secret: account.secret,
+    baseUrl: account.baseUrl,
     isBackendAllowed: (backend) => {
       if (!expectedBackendOrigin) {
         return true;
