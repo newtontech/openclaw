@@ -84,6 +84,10 @@ export const AgentDefaultsSchema = z
         keepRecentTokens: z.number().int().positive().optional(),
         reserveTokensFloor: z.number().int().nonnegative().optional(),
         maxHistoryShare: z.number().min(0.1).max(0.9).optional(),
+        identifierPolicy: z
+          .union([z.literal("strict"), z.literal("off"), z.literal("custom")])
+          .optional(),
+        identifierInstructions: z.string().optional(),
         memoryFlush: z
           .object({
             enabled: z.boolean().optional(),
@@ -127,6 +131,14 @@ export const AgentDefaultsSchema = z
     mediaMaxMb: z.number().positive().optional(),
     imageMaxDimensionPx: z.number().int().positive().optional(),
     typingIntervalSeconds: z.number().int().positive().optional(),
+    typingTtlSeconds: z
+      .number()
+      .int()
+      .min(-1)
+      .optional()
+      .describe(
+        "Typing indicator TTL in seconds. Default: 120 (2 minutes). 0 or -1 means unlimited (no timeout).",
+      ),
     typingMode: TypingModeSchema.optional(),
     heartbeat: HeartbeatSchema,
     maxConcurrent: z.number().int().positive().optional(),

@@ -51,6 +51,14 @@ export const SessionSchema = z
     resetByChannel: z.record(z.string(), SessionResetConfigSchema).optional(),
     store: z.string().optional(),
     typingIntervalSeconds: z.number().int().positive().optional(),
+    typingTtlSeconds: z
+      .number()
+      .int()
+      .min(-1)
+      .optional()
+      .describe(
+        "Typing indicator TTL in seconds. Default: 120 (2 minutes). 0 or -1 means unlimited (no timeout).",
+      ),
     typingMode: TypingModeSchema.optional(),
     parentForkMaxTokens: z.number().int().nonnegative().optional(),
     mainKey: z.string().optional(),

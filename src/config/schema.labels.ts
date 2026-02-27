@@ -408,6 +408,8 @@ export const FIELD_LABELS: Record<string, string> = {
   "agents.defaults.compaction.keepRecentTokens": "Compaction Keep Recent Tokens",
   "agents.defaults.compaction.reserveTokensFloor": "Compaction Reserve Token Floor",
   "agents.defaults.compaction.maxHistoryShare": "Compaction Max History Share",
+  "agents.defaults.compaction.identifierPolicy": "Compaction Identifier Policy",
+  "agents.defaults.compaction.identifierInstructions": "Compaction Identifier Instructions",
   "agents.defaults.compaction.memoryFlush": "Compaction Memory Flush",
   "agents.defaults.compaction.memoryFlush.enabled": "Compaction Memory Flush Enabled",
   "agents.defaults.compaction.memoryFlush.softThresholdTokens":
@@ -470,6 +472,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "session.resetByChannel": "Session Reset by Channel",
   "session.store": "Session Store Path",
   "session.typingIntervalSeconds": "Session Typing Interval (seconds)",
+  "session.typingTtlSeconds": "Session Typing TTL (seconds)",
   "session.typingMode": "Session Typing Mode",
   "session.parentForkMaxTokens": "Session Parent Fork Max Tokens",
   "session.mainKey": "Session Main Key",

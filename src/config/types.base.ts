@@ -116,6 +116,8 @@ export type SessionConfig = {
   resetByChannel?: Record<string, SessionResetConfig>;
   store?: string;
   typingIntervalSeconds?: number;
+  /** Typing indicator TTL in seconds (default: 120, 0 or -1 for unlimited). */
+  typingTtlSeconds?: number;
   typingMode?: TypingMode;
   /**
    * Max parent transcript token count allowed for thread/session forking.
