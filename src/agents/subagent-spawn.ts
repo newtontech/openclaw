@@ -26,6 +26,8 @@ import {
 export const SUBAGENT_SPAWN_MODES = ["run", "session"] as const;
 export type SpawnSubagentMode = (typeof SUBAGENT_SPAWN_MODES)[number];
 
+export type SpawnSubagentImage = { type: "image"; data: string; mimeType: string };
+
 export type SpawnSubagentParams = {
   task: string;
   label?: string;
@@ -37,6 +39,8 @@ export type SpawnSubagentParams = {
   mode?: SpawnSubagentMode;
   cleanup?: "delete" | "keep";
   expectsCompletionMessage?: boolean;
+  /** Images to pass to the spawned subagent (from parent session's prompt). */
+  images?: SpawnSubagentImage[];
 };
 
 export type SpawnSubagentContext = {
@@ -403,6 +407,16 @@ export async function spawnSubagentDirect(
     .filter((line): line is string => Boolean(line))
     .join("\n\n");
 
+  // Prepare attachments from images passed to spawn (from parent session's prompt)
+  const childAttachments =
+    params.images && params.images.length > 0
+      ? params.images.map((img) => ({
+          type: "image" as const,
+          mimeType: img.mimeType,
+          content: img.data,
+        }))
+      : undefined;
+
   const childIdem = crypto.randomUUID();
   let childRunId: string = childIdem;
   try {
@@ -426,6 +440,7 @@ export async function spawnSubagentDirect(
         groupId: ctx.agentGroupId ?? undefined,
         groupChannel: ctx.agentGroupChannel ?? undefined,
         groupSpace: ctx.agentGroupSpace ?? undefined,
+        attachments: childAttachments,
       },
       timeoutMs: 10_000,
     });
