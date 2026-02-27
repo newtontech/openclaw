@@ -134,8 +134,18 @@ export async function monitorTelegramProvider(opts: MonitorTelegramOpts = {}) {
       );
     }
 
-    const proxyFetch =
-      opts.proxyFetch ?? (account.config.proxy ? makeProxyFetch(account.config.proxy) : undefined);
+    // Check for proxy configuration in order of priority:
+    // 1. Explicit proxyFetch passed via opts
+    // 2. Account config proxy setting
+    // 3. HTTPS_PROXY environment variable (for HTTPS connections)
+    // 4. HTTP_PROXY environment variable (fallback)
+    const proxyUrl =
+      account.config.proxy ??
+      process.env.HTTPS_PROXY ??
+      process.env.https_proxy ??
+      process.env.HTTP_PROXY ??
+      process.env.http_proxy;
+    const proxyFetch = opts.proxyFetch ?? (proxyUrl ? makeProxyFetch(proxyUrl) : undefined);
 
     let lastUpdateId = await readTelegramUpdateOffset({
       accountId: account.accountId,
