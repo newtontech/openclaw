@@ -58,6 +58,9 @@ export async function getReplyFromConfig(
   configOverride?: OpenClawConfig,
 ): Promise<ReplyPayload | ReplyPayload[] | undefined> {
   const isFastTestEnv = process.env.OPENCLAW_TEST_FAST === "1";
+  // Always load fresh config to ensure hot-reloaded values (like model.primary)
+  // are used. configOverride is primarily for testing; in production we want
+  // the live config from loadConfig() which returns runtimeConfigSnapshot.
   const cfg = configOverride ?? loadConfig();
   const targetSessionKey =
     ctx.CommandSource === "native" ? ctx.CommandTargetSessionKey?.trim() : undefined;
@@ -74,8 +77,12 @@ export async function getReplyFromConfig(
     mergedSkillFilter !== undefined ? { ...opts, skillFilter: mergedSkillFilter } : opts;
   const agentCfg = cfg.agents?.defaults;
   const sessionCfg = cfg.session;
+  // For model resolution, always use the live config from loadConfig() to ensure
+  // hot-reloaded values (like agents.defaults.model.primary) take effect.
+  // cfg may be a stale config passed from channel monitors that loaded it at startup.
+  const liveConfigForModel = loadConfig();
   const { defaultProvider, defaultModel, aliasIndex } = resolveDefaultModel({
-    cfg,
+    cfg: liveConfigForModel,
     agentId,
   });
   let provider = defaultProvider;
