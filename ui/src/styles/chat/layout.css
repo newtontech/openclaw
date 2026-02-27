@@ -450,24 +450,43 @@
 
   .chat-compose {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
-  /* Mobile: stack compose row vertically */
+  /* Mobile: keep compose row horizontal for better space usage */
   .chat-compose__row {
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
+    align-items: flex-end;
   }
 
-  /* Mobile: stack action buttons vertically */
+  /* Mobile: larger textarea for better typing experience */
+  .chat-compose .chat-compose__field textarea {
+    min-height: 60px;
+    height: 60px;
+  }
+
+  /* Mobile: compact horizontal action buttons */
   .chat-compose__actions {
-    flex-direction: column;
-    width: 100%;
-    gap: 8px;
+    flex-direction: row;
+    width: auto;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
-  /* Mobile: full-width buttons */
+  /* Mobile: compact buttons */
   .chat-compose .chat-compose__actions .btn {
-    width: 100%;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12px;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
+  }
+
+  /* Hide keyboard shortcut indicator on mobile to save space */
+  .chat-compose .btn-kbd {
+    display: none;
   }
 
   .chat-controls {
@@ -477,5 +496,22 @@
 
   .chat-controls__session {
     min-width: 120px;
+  }
+}
+
+/* Small mobile: even more compact layout */
+@media (max-width: 400px) {
+  .chat-compose .chat-compose__field textarea {
+    min-height: 50px;
+    height: 50px;
+    font-size: 13px;
+  }
+
+  .chat-compose .chat-compose__actions .btn {
+    padding: 0 10px;
+    font-size: 11px;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
   }
 }
