@@ -78,6 +78,7 @@ export class FeishuStreamingSession {
   async start(
     receiveId: string,
     receiveIdType: "open_id" | "user_id" | "union_id" | "email" | "chat_id" = "chat_id",
+    rootId?: string,
   ): Promise<void> {
     if (this.state) {
       return;
@@ -115,13 +116,14 @@ export class FeishuStreamingSession {
     }
     const cardId = createData.data.card_id;
 
-    // Send card message
+    // Send card message (include root_id for topic group replies)
     const sendRes = await this.client.im.message.create({
       params: { receive_id_type: receiveIdType },
       data: {
         receive_id: receiveId,
         msg_type: "interactive",
         content: JSON.stringify({ type: "card", data: { card_id: cardId } }),
+        ...(rootId ? { root_id: rootId } : {}),
       },
     });
     if (sendRes.code !== 0 || !sendRes.data?.message_id) {
