@@ -982,7 +982,7 @@ export async function runEmbeddedPiAgent(
           // Rotate on timeout to try another account/model path in this turn,
           // but exclude post-prompt compaction timeouts (model succeeded; no profile issue).
           const shouldRotate =
-            (!aborted && failoverFailure) || (timedOut && !timedOutDuringCompaction);
+            (!aborted && (failoverFailure || rateLimitFailure)) || (timedOut && !timedOutDuringCompaction);
 
           if (shouldRotate) {
             if (lastProfileId) {
