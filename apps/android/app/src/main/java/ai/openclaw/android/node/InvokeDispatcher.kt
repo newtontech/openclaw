@@ -4,6 +4,7 @@ import ai.openclaw.android.gateway.GatewaySession
 import ai.openclaw.android.protocol.OpenClawCanvasA2UICommand
 import ai.openclaw.android.protocol.OpenClawCanvasCommand
 import ai.openclaw.android.protocol.OpenClawCameraCommand
+import ai.openclaw.android.protocol.OpenClawDeviceCommand
 import ai.openclaw.android.protocol.OpenClawLocationCommand
 import ai.openclaw.android.protocol.OpenClawNotificationsCommand
 import ai.openclaw.android.protocol.OpenClawScreenCommand
@@ -13,6 +14,7 @@ class InvokeDispatcher(
   private val canvas: CanvasController,
   private val cameraHandler: CameraHandler,
   private val locationHandler: LocationHandler,
+  private val deviceHandler: DeviceHandler,
   private val notificationsHandler: NotificationsHandler,
   private val screenHandler: ScreenHandler,
   private val smsHandler: SmsHandler,
@@ -110,14 +112,22 @@ class InvokeDispatcher(
       }
 
       // Camera commands
+      OpenClawCameraCommand.List.rawValue -> cameraHandler.handleList(paramsJson)
       OpenClawCameraCommand.Snap.rawValue -> cameraHandler.handleSnap(paramsJson)
       OpenClawCameraCommand.Clip.rawValue -> cameraHandler.handleClip(paramsJson)
 
       // Location command
       OpenClawLocationCommand.Get.rawValue -> locationHandler.handleLocationGet(paramsJson)
 
+      // Device commands
+      OpenClawDeviceCommand.Status.rawValue -> deviceHandler.handleDeviceStatus(paramsJson)
+      OpenClawDeviceCommand.Info.rawValue -> deviceHandler.handleDeviceInfo(paramsJson)
+      OpenClawDeviceCommand.Permissions.rawValue -> deviceHandler.handleDevicePermissions(paramsJson)
+      OpenClawDeviceCommand.Health.rawValue -> deviceHandler.handleDeviceHealth(paramsJson)
+
       // Notifications command
       OpenClawNotificationsCommand.List.rawValue -> notificationsHandler.handleNotificationsList(paramsJson)
+      OpenClawNotificationsCommand.Actions.rawValue -> notificationsHandler.handleNotificationsActions(paramsJson)
 
       // Screen command
       OpenClawScreenCommand.Record.rawValue -> screenHandler.handleScreenRecord(paramsJson)

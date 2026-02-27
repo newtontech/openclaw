@@ -372,7 +372,7 @@ class GatewaySession(
 
       val signedAtMs = System.currentTimeMillis()
       val payload =
-        buildDeviceAuthPayloadV3(
+        DeviceAuthPayload.buildV3(
           deviceId = identity.deviceId,
           clientId = client.id,
           clientMode = client.mode,
@@ -501,11 +501,16 @@ class GatewaySession(
           } catch (err: Throwable) {
             invokeErrorFromThrowable(err)
           }
-        sendInvokeResult(id, nodeId, result)
+        sendInvokeResult(id, nodeId, result, timeoutMs)
       }
     }
 
-    private suspend fun sendInvokeResult(id: String, nodeId: String, result: InvokeResult) {
+    private suspend fun sendInvokeResult(
+      id: String,
+      nodeId: String,
+      result: InvokeResult,
+      invokeTimeoutMs: Long?,
+    ) {
       val parsedPayload = result.payloadJson?.let { parseJsonOrNull(it) }
       val params =
         buildJsonObject {
@@ -527,10 +532,14 @@ class GatewaySession(
             )
           }
         }
+      val ackTimeoutMs = resolveInvokeResultAckTimeoutMs(invokeTimeoutMs)
       try {
-        request("node.invoke.result", params, timeoutMs = 15_000)
+        request("node.invoke.result", params, timeoutMs = ackTimeoutMs)
       } catch (err: Throwable) {
-        Log.w(loggerTag, "node.invoke.result failed: ${err.message ?: err::class.java.simpleName}")
+        Log.w(
+          loggerTag,
+          "node.invoke.result failed (ackTimeoutMs=$ackTimeoutMs): ${err.message ?: err::class.java.simpleName}",
+        )
       }
     }
 
@@ -583,42 +592,6 @@ class GatewaySession(
       mainSessionKey = null
     }
   }
-
-  private fun buildDeviceAuthPayloadV3(
-    deviceId: String,
-    clientId: String,
-    clientMode: String,
-    role: String,
-    scopes: List<String>,
-    signedAtMs: Long,
-    token: String?,
-    nonce: String,
-    platform: String?,
-    deviceFamily: String?,
-  ): String {
-    val scopeString = scopes.joinToString(",")
-    val authToken = token.orEmpty()
-    val platformNorm = normalizeDeviceMetadataField(platform)
-    val deviceFamilyNorm = normalizeDeviceMetadataField(deviceFamily)
-    val parts =
-      mutableListOf(
-        "v3",
-        deviceId,
-        clientId,
-        clientMode,
-        role,
-        scopeString,
-        signedAtMs.toString(),
-        authToken,
-        nonce,
-        platformNorm,
-        deviceFamilyNorm,
-      )
-    return parts.joinToString("|")
-  }
-
-  private fun normalizeDeviceMetadataField(value: String?): String =
-    value?.trim()?.lowercase(Locale.ROOT).orEmpty()
 
   private fun normalizeCanvasHostUrl(
     raw: String?,
@@ -722,4 +695,9 @@ private fun parseJsonOrNull(payload: String): JsonElement? {
   } catch (_: Throwable) {
     null
   }
+}
+
+internal fun resolveInvokeResultAckTimeoutMs(invokeTimeoutMs: Long?): Long {
+  val normalized = invokeTimeoutMs?.takeIf { it > 0L } ?: 15_000L
+  return normalized.coerceIn(15_000L, 120_000L)
 }

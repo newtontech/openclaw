@@ -561,18 +561,22 @@ async function sweepSubagentRuns() {
     clearPendingLifecycleError(runId);
     subagentRuns.delete(runId);
     mutated = true;
-    try {
-      await callGateway({
-        method: "sessions.delete",
-        params: {
-          key: entry.childSessionKey,
-          deleteTranscript: true,
-          emitLifecycleHooks: false,
-        },
-        timeoutMs: 10_000,
-      });
-    } catch {
-      // ignore
+    // Guard against deleting parent session when childSessionKey === requesterSessionKey
+    const isSameAsRequester = entry.childSessionKey === entry.requesterSessionKey;
+    if (!isSameAsRequester) {
+      try {
+        await callGateway({
+          method: "sessions.delete",
+          params: {
+            key: entry.childSessionKey,
+            deleteTranscript: true,
+            emitLifecycleHooks: false,
+          },
+          timeoutMs: 10_000,
+        });
+      } catch {
+        // ignore
+      }
     }
   }
   if (mutated) {
