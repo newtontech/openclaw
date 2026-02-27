@@ -508,8 +508,13 @@ export const OpenClawSchema = z
             z.literal("auto"),
             z.literal("lan"),
             z.literal("loopback"),
+            z.literal("localhost"),
             z.literal("custom"),
             z.literal("tailnet"),
+            z.literal("all"),
+            z.literal("any"),
+            z.literal("127.0.0.1"),
+            z.literal("0.0.0.0"),
           ])
           .optional(),
         customBindHost: z.string().optional(),
