@@ -1,4 +1,5 @@
 import { listChannelDocks } from "../channels/dock.js";
+import { getCommandDescription, type Locale } from "../i18n/index.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
 import { COMMAND_ARG_FORMATTERS } from "./commands-args.js";
 import type {
@@ -320,8 +321,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       args: [
         {
           name: "action",
-          description:
-            "spawn | cancel | steer | close | sessions | status | set-mode | set | cwd | permissions | timeout | model | reset-options | doctor | install | help",
+          description: "Action to run",
           type: "string",
           choices: [
             "spawn",
@@ -759,6 +759,21 @@ export function getChatCommands(): ChatCommandDefinition[] {
   cachedRegistry = registry;
   cachedNativeCommandSurfaces = null;
   return commands;
+}
+
+/**
+ * Get chat commands with localized descriptions
+ * @param locale - Target locale (e.g., "en", "zh-CN")
+ * @returns Array of command definitions with localized descriptions
+ */
+export function getLocalizedChatCommands(locale: Locale = "en"): ChatCommandDefinition[] {
+  const commands = getChatCommands();
+  
+  // Return commands with localized descriptions
+  return commands.map((command) => ({
+    ...command,
+    description: getCommandDescription(command.key, locale),
+  }));
 }
 
 export function getNativeCommandSurfaces(): Set<string> {
