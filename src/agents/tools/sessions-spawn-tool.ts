@@ -1,5 +1,8 @@
 import { Type } from "@sinclair/typebox";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
+import { loadConfig } from "../../config/config.js";
 import { ACP_SPAWN_MODES, spawnAcpDirect } from "../acp-spawn.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { SUBAGENT_SPAWN_MODES, spawnSubagentDirect } from "../subagent-spawn.js";
@@ -7,6 +10,8 @@ import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringParam } from "./common.js";
 
 const SESSIONS_SPAWN_RUNTIMES = ["subagent", "acp"] as const;
+
+const logger = createSubsystemLogger("agent/sessions-spawn");
 
 const SessionsSpawnToolSchema = Type.Object({
   task: Type.String(),
@@ -23,6 +28,15 @@ const SessionsSpawnToolSchema = Type.Object({
   mode: optionalStringEnum(SUBAGENT_SPAWN_MODES),
   cleanup: optionalStringEnum(["delete", "keep"] as const),
 });
+
+function resolveSpawnTimeoutMs(cfg: OpenClawConfig): number {
+  return cfg.agents?.defaults?.subagents?.spawnTimeoutMs ?? 30_000; // 30s default
+}
+
+function isTimeoutError(err: unknown): boolean {
+  const msg = String(err).toLowerCase();
+  return msg.includes('timeout') || msg.includes('gateway') || msg.includes('closed');
+}
 
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
@@ -68,50 +82,129 @@ export function createSessionsSpawnTool(opts?: {
           : undefined;
       const thread = params.thread === true;
 
-      const result =
-        runtime === "acp"
-          ? await spawnAcpDirect(
-              {
-                task,
-                label: label || undefined,
-                agentId: requestedAgentId,
-                cwd,
-                mode: mode && ACP_SPAWN_MODES.includes(mode) ? mode : undefined,
-                thread,
-              },
-              {
-                agentSessionKey: opts?.agentSessionKey,
-                agentChannel: opts?.agentChannel,
-                agentAccountId: opts?.agentAccountId,
-                agentTo: opts?.agentTo,
-                agentThreadId: opts?.agentThreadId,
-              },
-            )
-          : await spawnSubagentDirect(
-              {
-                task,
-                label: label || undefined,
-                agentId: requestedAgentId,
-                model: modelOverride,
-                thinking: thinkingOverrideRaw,
-                runTimeoutSeconds,
-                thread,
-                mode,
-                cleanup,
-                expectsCompletionMessage: true,
-              },
-              {
-                agentSessionKey: opts?.agentSessionKey,
-                agentChannel: opts?.agentChannel,
-                agentAccountId: opts?.agentAccountId,
-                agentTo: opts?.agentTo,
-                agentThreadId: opts?.agentThreadId,
-                agentGroupId: opts?.agentGroupId,
-                agentGroupChannel: opts?.agentGroupChannel,
-                agentGroupSpace: opts?.agentGroupSpace,
-                requesterAgentIdOverride: opts?.requesterAgentIdOverride,
-              },
+      // Load config and resolve spawn timeout (default: 30s)
+      const cfg = loadConfig();
+      const spawnTimeoutMs = resolveSpawnTimeoutMs(cfg);
+      
+      logger.debug("sessions_spawn executing", { 
+        runtime, 
+        spawnTimeoutMs,
+        hasAgentId: !!requestedAgentId,
+        thread: !!thread,
+      });
+
+      let result;
+      let attempt = 0;
+      const maxAttempts = 2; // Initial + 1 retry
+      
+      while (attempt < maxAttempts) {
+        attempt++;
+        try {
+          result = runtime === "acp"
+            ? await spawnAcpDirect(
+                {
+                  task,
+                  label: label || undefined,
+                  agentId: requestedAgentId,
+                  cwd,
+                  mode: mode && ACP_SPAWN_MODES.includes(mode) ? mode : undefined,
+                  thread,
+                },
+                {
+                  agentSessionKey: opts?.agentSessionKey,
+                  agentChannel: opts?.agentChannel,
+                  agentAccountId: opts?.agentAccountId,
+                  agentTo: opts?.agentTo,
+                  agentThreadId: opts?.agentThreadId,
+                },
+              )
+            : await spawnSubagentDirect(
+                {
+                  task,
+                  label: label || undefined,
+                  agentId: requestedAgentId,
+                  model: modelOverride,
+                  thinking: thinkingOverrideRaw,
+                  runTimeoutSeconds,
+                  thread,
+                  mode,
+                  cleanup,
+                  expectsCompletionMessage: true,
+                  spawnTimeoutMs,
+                },
+                {
+                  agentSessionKey: opts?.agentSessionKey,
+                  agentChannel: opts?.agentChannel,
+                  agentAccountId: opts?.agentAccountId,
+                  agentTo: opts?.agentTo,
+                  agentThreadId: opts?.agentThreadId,
+                  agentGroupId: opts?.agentGroupId,
+                  agentGroupChannel: opts?.agentGroupChannel,
+                  agentGroupSpace: opts?.agentGroupSpace,
+                  requesterAgentIdOverride: opts?.requesterAgentIdOverride,
+                },
+              );
+          
+          // Success - break out of retry loop
+          break;
+        } catch (err) {
+          const isTimeout = isTimeoutError(err);
+          const isLastAttempt = attempt >= maxAttempts;
+          
+          if (isTimeout && !isLastAttempt) {
+            logger.warn(`sessions_spawn timeout on attempt ${attempt}, retrying after 2s delay`, {
+              error: err instanceof Error ? err.message : String(err),
+              runtime,
+              attempt,
+            });
+            
+            // Wait 2s before retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          
+          // Not a timeout or last attempt - log and throw
+          logger.error("sessions_spawn failed", {
+            error: err instanceof Error ? err.message : String(err),
+            runtime,
+            attempt,
+            isTimeout,
+          });
+          
+          if (isTimeout) {
+            throw new Error(
+              `Gateway timeout after ${attempt} attempt(s) (${spawnTimeoutMs}ms each). ` +
+              `The gateway may be under heavy load. ` +
+              `Consider increasing 'agents.defaults.subagents.spawnTimeoutMs' in config. ` +
+              `Original error: ${err instanceof Error ? err.message : String(err)}`
             );
+          }
+          
+          throw err;
+        }
+      }
+      
+      if (attempt > 1) {
+        logger.info(`sessions_spawn succeeded after ${attempt} attempts`);
+      }
+
+      // result should always be defined here, but handle edge case
+      if (!result) {
+        throw new Error("sessions_spawn failed: result is undefined after execution");
+      }
+
+      if (result.status === "error") {
+        logger.warn("sessions_spawn returned error", { 
+          error: result.error,
+          childSessionKey: result.childSessionKey,
+        });
+      } else {
+        logger.info("sessions_spawn succeeded", {
+          childSessionKey: result.childSessionKey,
+          runId: result.runId,
+          mode: result.mode,
+        });
+      }
 
       return jsonResult(result);
     },

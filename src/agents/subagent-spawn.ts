@@ -37,6 +37,8 @@ export type SpawnSubagentParams = {
   mode?: SpawnSubagentMode;
   cleanup?: "delete" | "keep";
   expectsCompletionMessage?: boolean;
+  /** Gateway timeout in ms for spawn calls (default: 30000). */
+  spawnTimeoutMs?: number;
 };
 
 export type SpawnSubagentContext = {
@@ -211,6 +213,11 @@ export async function spawnSubagentDirect(
     typeof params.runTimeoutSeconds === "number" && Number.isFinite(params.runTimeoutSeconds)
       ? Math.max(0, Math.floor(params.runTimeoutSeconds))
       : cfgSubagentTimeout;
+  // Gateway timeout for spawn calls (default: 30s, configurable via spawnTimeoutMs)
+  const spawnTimeoutMs =
+    typeof params.spawnTimeoutMs === "number" && Number.isFinite(params.spawnTimeoutMs)
+      ? Math.max(1000, Math.floor(params.spawnTimeoutMs))
+      : 30_000;
   let modelApplied = false;
   let threadBindingReady = false;
   const { mainKey, alias } = resolveMainSessionAlias(cfg);
@@ -300,7 +307,7 @@ export async function spawnSubagentDirect(
     await callGateway({
       method: "sessions.patch",
       params: { key: childSessionKey, spawnDepth: childDepth },
-      timeoutMs: 10_000,
+      timeoutMs: spawnTimeoutMs,
     });
   } catch (err) {
     const messageText =
@@ -317,7 +324,7 @@ export async function spawnSubagentDirect(
       await callGateway({
         method: "sessions.patch",
         params: { key: childSessionKey, model: resolvedModel },
-        timeoutMs: 10_000,
+        timeoutMs: spawnTimeoutMs,
       });
       modelApplied = true;
     } catch (err) {
@@ -338,7 +345,7 @@ export async function spawnSubagentDirect(
           key: childSessionKey,
           thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
         },
-        timeoutMs: 10_000,
+        timeoutMs: spawnTimeoutMs,
       });
     } catch (err) {
       const messageText =
@@ -370,7 +377,7 @@ export async function spawnSubagentDirect(
         await callGateway({
           method: "sessions.delete",
           params: { key: childSessionKey, emitLifecycleHooks: false },
-          timeoutMs: 10_000,
+          timeoutMs: spawnTimeoutMs,
         });
       } catch {
         // Best-effort cleanup only.
@@ -427,7 +434,7 @@ export async function spawnSubagentDirect(
         groupChannel: ctx.agentGroupChannel ?? undefined,
         groupSpace: ctx.agentGroupSpace ?? undefined,
       },
-      timeoutMs: 10_000,
+      timeoutMs: spawnTimeoutMs,
     });
     if (typeof response?.runId === "string" && response.runId) {
       childRunId = response.runId;
@@ -470,7 +477,7 @@ export async function spawnSubagentDirect(
             deleteTranscript: true,
             emitLifecycleHooks: !endedHookEmitted,
           },
-          timeoutMs: 10_000,
+          timeoutMs: spawnTimeoutMs,
         });
       } catch {
         // Best-effort only.
