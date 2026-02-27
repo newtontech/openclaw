@@ -102,6 +102,21 @@ export type NextcloudTalkActor = {
   name: string;
 };
 
+/** Rich object parameter in a message. */
+export type NextcloudTalkRichObjectParameter = {
+  type: string;
+  id: string | number;
+  name: string;
+  path?: string;
+  [key: string]: unknown;
+};
+
+/** Parsed content from object.content JSON. */
+export type NextcloudTalkParsedContent = {
+  message: string;
+  parameters?: Record<string, NextcloudTalkRichObjectParameter>;
+};
+
 /** The message object in the activity. */
 export type NextcloudTalkObject = {
   type: "Note";
@@ -109,7 +124,7 @@ export type NextcloudTalkObject = {
   id: string;
   /** Message text (same as content for text/plain). */
   name: string;
-  /** Message content. */
+  /** Message content (JSON-encoded for rich object messages). */
   content: string;
   /** Media type of the content. */
   mediaType: string;
@@ -150,6 +165,8 @@ export type NextcloudTalkInboundMessage = {
   mediaType: string;
   timestamp: number;
   isGroupChat: boolean;
+  /** Media URLs extracted from rich object file attachments. */
+  mediaUrls?: string[];
 };
 
 /** Headers sent by Nextcloud Talk webhook. */
@@ -168,6 +185,8 @@ export type NextcloudTalkWebhookServerOptions = {
   host: string;
   path: string;
   secret: string;
+  /** Base URL of the Nextcloud instance (used to construct file URLs). */
+  baseUrl?: string;
   maxBodyBytes?: number;
   readBody?: (req: import("node:http").IncomingMessage, maxBodyBytes: number) => Promise<string>;
   isBackendAllowed?: (backend: string) => boolean;
