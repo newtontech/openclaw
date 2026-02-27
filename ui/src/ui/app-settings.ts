@@ -276,7 +276,15 @@ export function applyResolvedTheme(host: SettingsHost, resolved: ResolvedTheme) 
   }
   const root = document.documentElement;
   root.dataset.theme = resolved;
-  root.style.colorScheme = resolved;
+  // Map themes to standard color-scheme values
+  // Use 'only light' for light-based themes to prevent Android Chrome Auto Dark Mode
+  const colorScheme =
+    resolved === "light" || resolved === "spring"
+      ? "only light"
+      : resolved === "dark" || resolved === "ocean"
+        ? "dark"
+        : resolved;
+  root.style.colorScheme = colorScheme;
 }
 
 export function attachThemeListener(host: SettingsHost) {

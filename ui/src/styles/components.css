@@ -250,7 +250,7 @@
 .theme-toggle__track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, var(--theme-item));
+  grid-template-columns: repeat(5, var(--theme-item));
   gap: var(--theme-gap);
   padding: var(--theme-pad);
   border-radius: var(--radius-full);
@@ -2589,4 +2589,152 @@
   .agent-tools-list {
     grid-template-columns: 1fr;
   }
+}
+
+/* Ocean theme component overrides (dark blue theme) */
+:root[data-theme="ocean"] .btn-kbd {
+  background: var(--bg);
+}
+
+:root[data-theme="ocean"] .btn.primary .btn-kbd {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme="ocean"] .field input,
+:root[data-theme="ocean"] .field textarea,
+:root[data-theme="ocean"] .field select {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .btn {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+:root[data-theme="ocean"] .btn.active {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+:root[data-theme="ocean"] .btn.primary {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+:root[data-theme="ocean"] .code-block,
+:root[data-theme="ocean"] .list-item,
+:root[data-theme="ocean"] .table-row,
+:root[data-theme="ocean"] .chip {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .chat-bubble {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .chat-line.user .chat-bubble {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="ocean"] .chat-line.assistant .chat-bubble {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="ocean"] .chat-text :where(:not(pre) > code) {
+  background: var(--bg);
+}
+
+:root[data-theme="ocean"] .chat-text :where(pre) {
+  background: var(--bg);
+}
+
+:root[data-theme="ocean"] .chat-tool-card {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="ocean"] .chat-tool-card__output {
+  background: var(--bg-hover);
+}
+
+/* Spring theme component overrides (light pink theme) */
+:root[data-theme="spring"] .btn-kbd {
+  background: var(--bg);
+}
+
+:root[data-theme="spring"] .btn.primary .btn-kbd {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+:root[data-theme="spring"] .field input,
+:root[data-theme="spring"] .field textarea,
+:root[data-theme="spring"] .field select {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .btn {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+:root[data-theme="spring"] .btn.active {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+:root[data-theme="spring"] .btn.primary {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+:root[data-theme="spring"] .code-block,
+:root[data-theme="spring"] .list-item,
+:root[data-theme="spring"] .table-row,
+:root[data-theme="spring"] .chip {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .chat-bubble {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .chat-line.user .chat-bubble {
+  background: var(--bg-hover);
+}
+
+:root[data-theme="spring"] .chat-line.assistant .chat-bubble {
+  background: var(--bg-elevated);
+}
+
+:root[data-theme="spring"] .chat-text :where(:not(pre) > code) {
+  background: var(--bg);
+}
+
+:root[data-theme="spring"] .chat-text :where(pre) {
+  background: var(--bg);
+}
+
+:root[data-theme="spring"] .chat-tool-card {
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+:root[data-theme="spring"] .chat-tool-card__output {
+  background: var(--bg-hover);
 }

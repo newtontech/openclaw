@@ -394,7 +394,7 @@ function resolveSessionOptions(
   return options;
 }
 
-const THEME_ORDER: ThemeMode[] = ["system", "light", "dark"];
+const THEME_ORDER: ThemeMode[] = ["system", "light", "dark", "ocean", "spring"];
 
 export function renderThemeToggle(state: AppViewState) {
   const index = Math.max(0, THEME_ORDER.indexOf(state.theme));
@@ -439,6 +439,24 @@ export function renderThemeToggle(state: AppViewState) {
         >
           ${renderMoonIcon()}
         </button>
+        <button
+          class="theme-toggle__button ${state.theme === "ocean" ? "active" : ""}"
+          @click=${applyTheme("ocean")}
+          aria-pressed=${state.theme === "ocean"}
+          aria-label="Ocean theme"
+          title="Ocean"
+        >
+          ${renderOceanIcon()}
+        </button>
+        <button
+          class="theme-toggle__button ${state.theme === "spring" ? "active" : ""}"
+          @click=${applyTheme("spring")}
+          aria-pressed=${state.theme === "spring"}
+          aria-label="Spring theme"
+          title="Spring"
+        >
+          ${renderSpringIcon()}
+        </button>
       </div>
     </div>
   `;
@@ -476,6 +494,25 @@ function renderMonitorIcon() {
       <rect width="20" height="14" x="2" y="3" rx="2"></rect>
       <line x1="8" x2="16" y1="21" y2="21"></line>
       <line x1="12" x2="12" y1="17" y2="21"></line>
+    </svg>
+  `;
+}
+
+function renderOceanIcon() {
+  return html`
+    <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M2 12h2a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4a2 2 0 0 1 2-2h2"></path>
+      <path d="M2 12a10 10 0 0 1 20 0"></path>
+    </svg>
+  `;
+}
+
+function renderSpringIcon() {
+  return html`
+    <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M12 14a2 2 0 0 0 2-2"></path>
     </svg>
   `;
 }

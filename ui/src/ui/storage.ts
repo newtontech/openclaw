@@ -58,7 +58,11 @@ export function loadSettings(): UiSettings {
           : (typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()) ||
             defaults.lastActiveSessionKey,
       theme:
-        parsed.theme === "light" || parsed.theme === "dark" || parsed.theme === "system"
+        parsed.theme === "light" ||
+        parsed.theme === "dark" ||
+        parsed.theme === "system" ||
+        parsed.theme === "ocean" ||
+        parsed.theme === "spring"
           ? parsed.theme
           : defaults.theme,
       chatFocusMode:
