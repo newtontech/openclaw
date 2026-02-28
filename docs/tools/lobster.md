@@ -150,6 +150,77 @@ Notes:
 
 - `stdin: $step.stdout` and `stdin: $step.json` pass a prior step’s output.
 - `condition` (or `when`) can gate steps on `$step.approved`.
+### Shell quoting limitations in YAML
+
+YAML workflow files have two limitations that can trip up complex commands:
+
+**1. `exec --shell` is pipeline-DSL only**
+
+The `exec --shell "..."` syntax works in **inline pipeline strings** passed to the Lobster tool (e.g. via the `pipeline` field in a tool call), but **not** inside `.lobster` workflow files. In workflow files, the `command` field runs the OS command directly — it does not go through the Lobster pipeline DSL parser.
+
+**2. YAML compact mapping rejects embedded quotes**
+
+YAML's compact mapping syntax rejects nested quotes in `command` strings, causing parse errors like:
+
+```
+Nested mappings are not allowed in compact mappings
+```
+
+For example, this YAML fails to parse:
+
+```yaml
+name: example
+steps:
+  - id: run
+    command: bash -c 'echo "hello world"'
+```
+
+#### Workarounds
+
+**Option 1: External bash script**
+
+Move complex commands to a separate script:
+
+`run.sh`:
+```bash
+#!/bin/bash
+echo "hello world"
+```
+
+`example.lobster`:
+```yaml
+name: example
+steps:
+  - id: run
+    command: bash /path/to/run.sh
+```
+
+**Option 2: JSON format**
+
+JSON handles embedded quotes naturally via escaping:
+
+```json
+{
+  "name": "example",
+  "steps": [
+    {
+      "id": "run",
+      "command": "bash -c 'echo \"hello world\"'"
+    }
+  ]
+}
+```
+
+#### Future improvement
+
+Consider using an `exec` helper or `shell: true` flag in workflow step definitions to wrap commands in `exec --shell "..."` internally, removing the quoting burden. Example:
+
+```yaml
+steps:
+  - id: run
+    shell: true
+    command: echo "hello world" | grep hello
+```
 
 ## Install Lobster
 
