@@ -16,7 +16,11 @@
     "PS4",
     "GCONV_PATH",
     "IFS",
-    "SSLKEYLOGFILE"
+    "SSLKEYLOGFILE",
+    "CLAW_SESSION",
+    "CLAUDECODE",
+    "CLAW_TOKEN",
+    "CLAW_WS_ENDPOINT"
   ],
   "blockedOverrideKeys": ["HOME", "ZDOTDIR"],
   "blockedPrefixes": ["DYLD_", "LD_", "BASH_FUNC_"]
