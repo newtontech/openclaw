@@ -389,14 +389,28 @@ function loadSkillEntries(
 
   const skillEntries: SkillEntry[] = Array.from(merged.values()).map((skill) => {
     let frontmatter: ParsedSkillFrontmatter = {};
+    let correctedSkill = skill;
     try {
       const raw = fs.readFileSync(skill.filePath, "utf-8");
       frontmatter = parseFrontmatter(raw);
-    } catch {
-      // ignore malformed skills
+      // Use openclaw's frontmatter parser to get the correct description.
+      // The @mariozechner/pi-coding-agent YAML parser may incorrectly split
+      // descriptions containing colons (e.g., "IMPORTANT: note" becomes a new key).
+      // Our parser handles this better with line-based fallback.
+      const parsedDescription = frontmatter.description?.trim();
+      if (parsedDescription && parsedDescription !== skill.description.trim()) {
+        correctedSkill = { ...skill, description: parsedDescription };
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      skillsLogger.warn("Failed to parse SKILL.md frontmatter.", {
+        skill: skill.name,
+        filePath: skill.filePath,
+        error: message,
+      });
     }
     return {
-      skill,
+      skill: correctedSkill,
       frontmatter,
       metadata: resolveOpenClawMetadata(frontmatter),
       invocation: resolveSkillInvocationPolicy(frontmatter),
