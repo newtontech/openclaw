@@ -121,8 +121,6 @@ export async function resolveSessionAuthProfileOverride(params: {
   let next = current;
   if (isNewSession) {
     next = current ? pickNextAvailable(current) : pickFirstAvailable();
-  } else if (current && compactionCount > storedCompaction) {
-    next = pickNextAvailable(current);
   } else if (!current || isProfileInCooldown(store, current)) {
     next = pickFirstAvailable();
   }
@@ -137,7 +135,7 @@ export async function resolveSessionAuthProfileOverride(params: {
   if (shouldPersist) {
     sessionEntry.authProfileOverride = next;
     sessionEntry.authProfileOverrideSource = "auto";
-    sessionEntry.authProfileOverrideCompactionCount = compactionCount;
+    sessionEntry.authProfileOverrideCompactionCount = storedCompaction;
     sessionEntry.updatedAt = Date.now();
     sessionStore[sessionKey] = sessionEntry;
     if (storePath) {
