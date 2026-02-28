@@ -750,6 +750,7 @@ export function buildWorkspaceSkillCommandSpecs(
     })();
 
     specs.push({
+      acceptsArgs: true,
       name: unique,
       skillName: rawName,
       description,
