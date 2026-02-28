@@ -25,6 +25,20 @@ describe("isDangerousHostEnvVarName", () => {
     expect(isDangerousHostEnvVarName("PATH")).toBe(false);
     expect(isDangerousHostEnvVarName("FOO")).toBe(false);
   });
+
+  it("blocks session-related environment variables to prevent nested session errors", () => {
+    // These variables are set by OpenClaw/Claude CLI and should not be inherited
+    // by child processes to prevent "nested session detected" errors when
+    // spawning sub-agents from cron jobs or other automated contexts.
+    expect(isDangerousHostEnvVarName("CLAW_SESSION")).toBe(true);
+    expect(isDangerousHostEnvVarName("claw_session")).toBe(true);
+    expect(isDangerousHostEnvVarName("CLAUDECODE")).toBe(true);
+    expect(isDangerousHostEnvVarName("claudecode")).toBe(true);
+    expect(isDangerousHostEnvVarName("CLAW_TOKEN")).toBe(true);
+    expect(isDangerousHostEnvVarName("claw_token")).toBe(true);
+    expect(isDangerousHostEnvVarName("CLAW_WS_ENDPOINT")).toBe(true);
+    expect(isDangerousHostEnvVarName("claw_ws_endpoint")).toBe(true);
+  });
 });
 
 describe("sanitizeHostExecEnv", () => {
@@ -103,6 +117,29 @@ describe("sanitizeHostExecEnv", () => {
     expect(env.GOOD_KEY).toBe("ok");
     expect(env[" BAD KEY"]).toBeUndefined();
     expect(env["NOT-PORTABLE"]).toBeUndefined();
+  });
+
+  it("removes session-related environment variables to prevent nested session errors", () => {
+    // When spawning child processes (e.g., from cron jobs), these session
+    // variables must be removed to prevent "nested session detected" errors
+    // in Claude CLI or other tools that detect existing sessions.
+    const env = sanitizeHostExecEnv({
+      baseEnv: {
+        PATH: "/usr/bin:/bin",
+        CLAW_SESSION: "agent:main:subagent:123",
+        CLAUDECODE: "1",
+        CLAW_TOKEN: "secret-token",
+        CLAW_WS_ENDPOINT: "ws://localhost:8080",
+        OK_VAR: "safe",
+      },
+    });
+
+    expect(env.PATH).toBe("/usr/bin:/bin");
+    expect(env.OK_VAR).toBe("safe");
+    expect(env.CLAW_SESSION).toBeUndefined();
+    expect(env.CLAUDECODE).toBeUndefined();
+    expect(env.CLAW_TOKEN).toBeUndefined();
+    expect(env.CLAW_WS_ENDPOINT).toBeUndefined();
   });
 });
 
