@@ -231,20 +231,19 @@ describe("filterBootstrapFilesForSession", () => {
     expect(result).toHaveLength(mockFiles.length);
   });
 
-  it("filters to allowlist for subagent sessions", () => {
+  it("filters to only AGENTS.md and TOOLS.md for subagent sessions (issue #29363)", () => {
     const result = filterBootstrapFilesForSession(mockFiles, "agent:default:subagent:task-1");
     const names = result.map((f) => f.name);
-    expect(names).toContain("AGENTS.md");
-    expect(names).toContain("TOOLS.md");
-    expect(names).toContain("SOUL.md");
-    expect(names).toContain("IDENTITY.md");
-    expect(names).toContain("USER.md");
+    expect(names).toEqual(["AGENTS.md", "TOOLS.md"]);
+    expect(names).not.toContain("SOUL.md");
+    expect(names).not.toContain("IDENTITY.md");
+    expect(names).not.toContain("USER.md");
     expect(names).not.toContain("HEARTBEAT.md");
     expect(names).not.toContain("BOOTSTRAP.md");
     expect(names).not.toContain("MEMORY.md");
   });
 
-  it("filters to allowlist for cron sessions", () => {
+  it("filters to allowlist for cron sessions (includes SOUL, IDENTITY, USER)", () => {
     const result = filterBootstrapFilesForSession(mockFiles, "agent:default:cron:daily-check");
     const names = result.map((f) => f.name);
     expect(names).toContain("AGENTS.md");

@@ -289,6 +289,7 @@ export async function handleNextcloudTalkInbound(params: {
     OriginatingChannel: CHANNEL_ID,
     OriginatingTo: `nextcloud-talk:${roomToken}`,
     CommandAuthorized: commandAuthorized,
+    MediaUrls: message.mediaUrls,
   });
 
   await core.channel.session.recordInboundSession({
