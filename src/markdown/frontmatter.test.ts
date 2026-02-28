@@ -72,4 +72,31 @@ metadata:
     const content = "# No frontmatter";
     expect(parseFrontmatterBlock(content)).toEqual({});
   });
+
+  it("handles colons in description field correctly", () => {
+    // Regression test for issue #29981
+    // YAML parsers may incorrectly interpret "IMPORTANT:" as a new key-value pair
+    const content = `---
+name: test-skill
+description: Generate images using GLM's Cogview API. IMPORTANT: Must use anime style only
+---
+`;
+    const result = parseFrontmatterBlock(content);
+    expect(result.name).toBe("test-skill");
+    // The description should preserve the full text including the colon
+    expect(result.description).toBe(
+      "Generate images using GLM's Cogview API. IMPORTANT: Must use anime style only",
+    );
+  });
+
+  it("handles multiple colons in description field", () => {
+    const content = `---
+name: multi-colon-skill
+description: Step 1: Do this. Step 2: Do that. NOTE: Important info here
+---
+`;
+    const result = parseFrontmatterBlock(content);
+    expect(result.name).toBe("multi-colon-skill");
+    expect(result.description).toBe("Step 1: Do this. Step 2: Do that. NOTE: Important info here");
+  });
 });
