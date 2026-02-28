@@ -49,6 +49,8 @@ export type SkillCommandDispatchSpec = {
 };
 
 export type SkillCommandSpec = {
+  /** Whether this command accepts arguments (e.g., for Discord slash command input field). */
+  acceptsArgs?: boolean;
   name: string;
   skillName: string;
   description: string;

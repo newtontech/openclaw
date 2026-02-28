@@ -79,7 +79,7 @@ function buildSkillCommandDefinitions(skillCommands?: SkillCommandSpec[]): ChatC
     nativeName: spec.name,
     description: spec.description,
     textAliases: [`/${spec.name}`],
-    acceptsArgs: true,
+    acceptsArgs: spec.acceptsArgs ?? true,
     argsParsing: "none",
     scope: "both",
   }));
