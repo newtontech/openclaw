@@ -501,6 +501,19 @@ function restoreSubagentRunsOnce() {
     if (reconcileOrphanedRestoredRuns()) {
       persistSubagentRuns();
     }
+    // Clean up stale completed runs on startup (fixes #29795).
+    // Remove runs that ended more than ANNOUNCE_EXPIRY_MS ago to prevent
+    // stale sub-agents from persisting indefinitely across reboots.
+    const now = Date.now();
+    let prunedStale = 0;
+    for (const [runId, entry] of subagentRuns.entries()) {
+      if (typeof entry.endedAt === "number" && now - entry.endedAt > ANNOUNCE_EXPIRY_MS) {
+        clearPendingLifecycleError(runId);
+        subagentRuns.delete(runId);
+        prunedStale++;
+      }
+    }
+    if (prunedStale > 0) persistSubagentRuns();
     if (subagentRuns.size === 0) {
       return;
     }
