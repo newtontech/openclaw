@@ -137,10 +137,12 @@ function resolveAssistantAvatarUrl(state: AppViewState): string | undefined {
 }
 
 export function renderApp(state: AppViewState) {
+  // Always use the server's reported version from the hello message.
+  // The hello message is sent on every connection, ensuring the version
+  // reflects the currently running gateway after upgrades.
+  const helloVersion = state.hello?.server?.version;
   const openClawVersion =
-    (typeof state.hello?.server?.version === "string" && state.hello.server.version.trim()) ||
-    state.updateAvailable?.currentVersion ||
-    t("common.na");
+    typeof helloVersion === "string" && helloVersion.trim() ? helloVersion.trim() : t("common.na");
   const availableUpdate =
     state.updateAvailable &&
     state.updateAvailable.latestVersion !== state.updateAvailable.currentVersion
