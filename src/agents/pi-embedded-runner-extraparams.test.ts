@@ -746,7 +746,7 @@ describe("applyExtraParamsToAgent", () => {
     });
   });
 
-  it("skips context1m beta for OAuth tokens but preserves OAuth-required betas", () => {
+  it("includes context1m beta for OAuth tokens with OAuth-required betas", () => {
     const calls: Array<SimpleStreamOptions | undefined> = [];
     const baseStreamFn: StreamFn = (_model, _context, options) => {
       calls.push(options);
@@ -787,7 +787,8 @@ describe("applyExtraParamsToAgent", () => {
     // Must include the OAuth-required betas so they aren't stripped by pi-ai's mergeHeaders
     expect(betaHeader).toContain("oauth-2025-04-20");
     expect(betaHeader).toContain("claude-code-20250219");
-    expect(betaHeader).not.toContain("context-1m-2025-08-07");
+    // Now includes context-1m for OAuth tokens (Anthropic accepts it for Extra Usage accounts)
+    expect(betaHeader).toContain("context-1m-2025-08-07");
   });
 
   it("merges existing anthropic-beta headers with configured betas", () => {
